@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 class AppConfig {
   static const String appName = 'Preventivo Elettrico Pro';
   static const String package = 'com.tuosito.elettricopro';
-  static const List<String> categorie = ['Impianto', 'Quadro', 'Illuminazione', 'Domotica', 'Riparazione'];
+  static const List<String> categorie = ['Impianto', 'Quadro', 'Illuminazione', 'Domotica', 'Riparazione', 'Cavi'];
 }
 
 void main() => runApp(const MyApp());
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
 class Lavoro {
   final String nome;
   final String categoria;
-  final double prezzo;
+  double prezzo; // NON PIU' FINAL - così si può cambiare il prezzo base
   final String unita;
   Lavoro(this.nome, this.categoria, this.prezzo, {this.unita = 'cad.'});
 }
@@ -55,6 +55,27 @@ final List<Lavoro> catalogo = [
   Lavoro('Domotica - punto / centralina', 'Domotica', 120),
   Lavoro('Certificazione / Dichiarazione di conformità', 'Riparazione', 150),
   Lavoro('Riparazione guasto / ricerca guasto', 'Riparazione', 70, unita: 'ora'),
+  // MATASSE CAVO UNIPOLARE - 5 SEZIONI x 4 COLORI - CON - 1 +
+  Lavoro('Matassa cavo 1,5mm² - Blu - Neutro - 100m', 'Cavi', 45, unita: 'matassa'),
+  Lavoro('Matassa cavo 1,5mm² - Marrone - Fase - 100m', 'Cavi', 45, unita: 'matassa'),
+  Lavoro('Matassa cavo 1,5mm² - Nero - Fase - 100m', 'Cavi', 45, unita: 'matassa'),
+  Lavoro('Matassa cavo 1,5mm² - Giallo Verde - Terra - 100m', 'Cavi', 45, unita: 'matassa'),
+  Lavoro('Matassa cavo 2,5mm² - Blu - Neutro - 100m', 'Cavi', 65, unita: 'matassa'),
+  Lavoro('Matassa cavo 2,5mm² - Marrone - Fase - 100m', 'Cavi', 65, unita: 'matassa'),
+  Lavoro('Matassa cavo 2,5mm² - Nero - Fase - 100m', 'Cavi', 65, unita: 'matassa'),
+  Lavoro('Matassa cavo 2,5mm² - Giallo Verde - Terra - 100m', 'Cavi', 65, unita: 'matassa'),
+  Lavoro('Matassa cavo 4mm² - Blu - Neutro - 100m', 'Cavi', 95, unita: 'matassa'),
+  Lavoro('Matassa cavo 4mm² - Marrone - Fase - 100m', 'Cavi', 95, unita: 'matassa'),
+  Lavoro('Matassa cavo 4mm² - Nero - Fase - 100m', 'Cavi', 95, unita: 'matassa'),
+  Lavoro('Matassa cavo 4mm² - Giallo Verde - Terra - 100m', 'Cavi', 95, unita: 'matassa'),
+  Lavoro('Matassa cavo 6mm² - Blu - Neutro - 100m', 'Cavi', 135, unita: 'matassa'),
+  Lavoro('Matassa cavo 6mm² - Marrone - Fase - 100m', 'Cavi', 135, unita: 'matassa'),
+  Lavoro('Matassa cavo 6mm² - Nero - Fase - 100m', 'Cavi', 135, unita: 'matassa'),
+  Lavoro('Matassa cavo 6mm² - Giallo Verde - Terra - 100m', 'Cavi', 135, unita: 'matassa'),
+  Lavoro('Matassa cavo 10mm² - Blu - Neutro - 100m', 'Cavi', 210, unita: 'matassa'),
+  Lavoro('Matassa cavo 10mm² - Marrone - Fase - 100m', 'Cavi', 210, unita: 'matassa'),
+  Lavoro('Matassa cavo 10mm² - Nero - Fase - 100m', 'Cavi', 210, unita: 'matassa'),
+  Lavoro('Matassa cavo 10mm² - Giallo Verde - Terra - 100m', 'Cavi', 210, unita: 'matassa'),
 ];
 
 // ---------- MODELLO DITTA ----------
@@ -62,8 +83,6 @@ class Ditta {
   String nome, indirizzo, piva, telefono, email, cittaForo;
   Ditta({this.nome = '', this.indirizzo = '', this.piva = '', this.telefono = '', this.email = '', this.cittaForo = ''});
   bool get isEmpty => nome.isEmpty;
-  Map<String, String> toMap() => {'nome': nome, 'indirizzo': indirizzo, 'piva': piva, 'telefono': telefono, 'email': email, 'cittaForo': cittaForo};
-  static Ditta fromMap(Map<String, String> m) => Ditta(nome: m['nome'] ?? '', indirizzo: m['indirizzo'] ?? '', piva: m['piva'] ?? '', telefono: m['telefono'] ?? '', email: m['email'] ?? '', cittaForo: m['cittaForo'] ?? '');
 }
 
 class RigaPreventivo {
@@ -85,7 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final _clienteCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
   final _indirizzoCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
   String _filtroCategoria = 'Tutte';
   String _search = '';
   double _iva = 10;
@@ -194,6 +212,101 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _rimuoviUno(Lavoro l) {
+    setState(() {
+      final esistente = righe.where((r) => r.lavoro.nome == l.nome).toList();
+      if (esistente.isNotEmpty) {
+        if (esistente.first.qty > 1) {
+          esistente.first.qty--;
+        } else {
+          righe.remove(esistente.first);
+        }
+      }
+    });
+  }
+
+  // NUOVO: MODIFICA PREZZO BASE NEL CATALOGO - pressione lunga
+  Future<void> _modificaPrezzoBase(Lavoro l) async {
+    final ctrl = TextEditingController(text: l.prezzo.toStringAsFixed(0));
+    final nuovo = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Modifica prezzo base'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Nuovo prezzo €', border: OutlineInputBorder(), prefixText: '€ ')),
+            const SizedBox(height: 8),
+            const Text('Questo diventa il nuovo prezzo base per le prossime volte.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, double.tryParse(ctrl.text.replaceAll(',', '.'))), child: const Text('Salva')),
+        ],
+      ),
+    );
+    if (nuovo != null && nuovo > 0) {
+      setState(() {
+        l.prezzo = nuovo;
+        // Aggiorna anche le righe già aggiunte se vuoi che il prezzo cambi subito
+        for (final r in righe.where((r) => r.lavoro.nome == l.nome)) {
+          r.prezzoPersonalizzato = nuovo;
+        }
+      });
+    }
+  }
+
+  // NUOVO: MODIFICA PREZZO SOLO PER QUESTA RIGA / QUESTO CLIENTE
+  Future<void> _modificaPrezzoRiga(RigaPreventivo r) async {
+    final ctrl = TextEditingController(text: r.prezzoPersonalizzato.toStringAsFixed(0));
+    final nuovo = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Modifica prezzo per questo cliente'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(r.lavoro.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Prezzo per questo preventivo €', border: OutlineInputBorder(), prefixText: '€ ')),
+            const SizedBox(height: 8),
+            const Text('Il listino base non cambia, cambia solo questa riga.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, double.tryParse(ctrl.text.replaceAll(',', '.'))), child: const Text('Salva')),
+        ],
+      ),
+    );
+    if (nuovo != null && nuovo > 0) {
+      setState(() => r.prezzoPersonalizzato = nuovo);
+    }
+  }
+
+  void _nuovoPreventivo() {
+    setState(() {
+      righe.clear();
+      _clienteCtrl.clear();
+      _telefonoCtrl.clear();
+      _indirizzoCtrl.clear();
+      _search = '';
+      _filtroCategoria = 'Tutte';
+      _iva = 10;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nuovo preventivo - tutto azzerato')));
+  }
+
+  void _cancellaLavorazioni() {
+    setState(() => righe.clear());
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lavorazioni cancellate')));
+  }
+
   Future<void> _generaPdf() async {
     if (_clienteCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inserisci il nome del cliente')));
@@ -211,7 +324,6 @@ class _HomeScreenState extends State<HomeScreen> {
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(28),
       build: (ctx) => [
-        // INTESTAZIONE DITTA - inserita da chi compra
         pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
           pw.Text(ditta.nome.isEmpty ? 'ELECTRIC PRO' : ditta.nome, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900)),
           if (ditta.indirizzo.isNotEmpty) pw.Text(ditta.indirizzo, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
@@ -273,10 +385,6 @@ class _HomeScreenState extends State<HomeScreen> {
             pw.Text('Saldo a fine lavori: ${fmt(totale - acconto)}', style: const pw.TextStyle(fontSize: 11)),
           ]),
         ]),
-        if (_noteCtrl.text.isNotEmpty) ...[
-          pw.SizedBox(height: 12),
-          pw.Text('Note: ${_noteCtrl.text}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-        ],
         pw.SizedBox(height: 18),
         pw.Text('NOTE LEGALI', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.orange900)),
         pw.SizedBox(height: 4),
@@ -320,13 +428,13 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(ditta.nome.isEmpty ? 'Inserisci la tua ditta' : ditta.nome, style: const TextStyle(fontSize: 12)),
         ]),
         actions: [
+          IconButton(icon: const Icon(Icons.refresh), tooltip: 'Nuovo / Refresh - azzera tutto', onPressed: _nuovoPreventivo),
+          IconButton(icon: const Icon(Icons.delete), tooltip: 'Cancella lavorazioni', onPressed: _cancellaLavorazioni),
           IconButton(icon: const Icon(Icons.business), tooltip: 'Dati ditta', onPressed: () => _mostraDialogDitta()),
-          IconButton(icon: const Icon(Icons.delete_sweep), tooltip: 'Azzera', onPressed: () => setState(() { righe.clear(); _clienteCtrl.clear(); _telefonoCtrl.clear(); _indirizzoCtrl.clear(); _noteCtrl.clear(); })),
         ],
       ),
       body: Column(
         children: [
-          // CLIENTE + IVA
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Column(
@@ -352,7 +460,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // FILTRI
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
@@ -374,49 +481,96 @@ class _HomeScreenState extends State<HomeScreen> {
             ]),
           ),
           const SizedBox(height: 8),
-          // LISTA CATALOGO
+          // LISTA CATALOGO - PRESSIONE LUNGA = MODIFICA PREZZO BASE
           Expanded(
+            flex: 2,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: filtrati.length,
               itemBuilder: (ctx, i) {
                 final l = filtrati[i];
+                final esistente = righe.where((r) => r.lavoro.nome == l.nome).toList();
+                final qty = esistente.isEmpty ? 0 : esistente.first.qty;
                 return Card(
                   child: ListTile(
+                    onLongPress: () => _modificaPrezzoBase(l),
                     title: Text(l.nome, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: Text('${l.categoria} • ${fmt(l.prezzo)} / ${l.unita}'),
-                    trailing: FilledButton(onPressed: () => _aggiungi(l), child: const Text('+ Aggiungi')),
+                    subtitle: Text('${l.categoria} • ${fmt(l.prezzo)} / ${l.unita}  •  tieni premuto per cambiare prezzo'),
+                    trailing: l.categoria == 'Cavi'
+                        ? Container(
+                            decoration: BoxDecoration(border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(20)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(icon: const Icon(Icons.remove, size: 18), onPressed: () => _rimuoviUno(l)),
+                                Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                IconButton(icon: const Icon(Icons.add, size: 18), onPressed: () => _aggiungi(l)),
+                              ],
+                            ),
+                          )
+                        : FilledButton(onPressed: () => _aggiungi(l), child: const Text('+ Aggiungi')),
                   ),
                 );
               },
             ),
           ),
-          // RIGHE SELEZIONATE
+          // RIGHE SELEZIONATE - TOCCA IL PREZZO PER CAMBIARLO SOLO QUI
           if (righe.isNotEmpty)
             Container(
-              color: Colors.orange.shade50,
-              padding: const EdgeInsets.all(12),
+              constraints: const BoxConstraints(maxHeight: 280),
+              decoration: BoxDecoration(color: Colors.orange.shade50, border: Border(top: BorderSide(color: Colors.orange.shade200))),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ...righe.map((r) => Row(
-                        children: [
-                          Expanded(child: Text('${r.lavoro.nome} x${r.qty}', style: const TextStyle(fontSize: 13))),
-                          Text(fmt(r.totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          IconButton(icon: const Icon(Icons.remove_circle_outline, size: 20), onPressed: () => setState(() { if (r.qty > 1) r.qty--; else righe.remove(r); })),
-                          IconButton(icon: const Icon(Icons.add_circle_outline, size: 20), onPressed: () => setState(() => r.qty++)),
-                        ],
-                      )),
-                  const Divider(),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Subtotale'), Text(fmt(subtotale))]),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('IVA ${_iva.toStringAsFixed(0)}%'), Text(fmt(ivaImporto))]),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTALE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text(fmt(totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange))]),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Acconto ${_accontoPerc.toStringAsFixed(0)}%'), Text(fmt(acconto))]),
-                  const SizedBox(height: 8),
-                  TextField(controller: _noteCtrl, decoration: const InputDecoration(labelText: 'Note aggiuntive (opzionale)', border: OutlineInputBorder()), maxLines: 1),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(onPressed: _generaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('GENERA PDF PREVENTIVO')),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      itemCount: righe.length,
+                      itemBuilder: (ctx, i) {
+                        final r = righe[i];
+                        return Row(
+                          children: [
+                            Expanded(child: Text('${r.lavoro.nome} x${r.qty}', style: const TextStyle(fontSize: 13))),
+                            GestureDetector(
+                              onTap: () => _modificaPrezzoRiga(r),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(6)),
+                                child: Text(fmt(r.prezzoPersonalizzato), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(fmt(r.totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            IconButton(icon: const Icon(Icons.remove_circle_outline, size: 20), onPressed: () => setState(() { if (r.qty > 1) r.qty--; else righe.remove(r); })),
+                            IconButton(icon: const Icon(Icons.add_circle_outline, size: 20), onPressed: () => setState(() => r.qty++)),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                    child: Column(
+                      children: [
+                        const Divider(),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Subtotale'), Text(fmt(subtotale))]),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('IVA ${_iva.toStringAsFixed(0)}%'), Text(fmt(ivaImporto))]),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTALE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text(fmt(totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange))]),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Acconto ${_accontoPerc.toStringAsFixed(0)}%'), Text(fmt(acconto))]),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Preventivo valido 30 giorni. Materiali e manodopera inclusi. Esecuzione a regola d\'arte secondo normative CEI. Acconto alla conferma, saldo a fine lavori.',
+                          style: TextStyle(fontSize: 9, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(onPressed: _generaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('GENERA PDF PREVENTIVO')),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
