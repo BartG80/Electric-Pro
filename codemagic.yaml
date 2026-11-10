@@ -16,28 +16,22 @@ workflows:
     scripts:
       - name: Crea cartella Android se manca
         script: |
-          cd electric-pro
           cp lib/main.dart /tmp/main_backup.dart
           cp pubspec.yaml /tmp/pubspec_backup.yaml
           if [ ! -d "android" ]; then
-            echo "Cartella android mancante, la creo..."
             flutter create --platforms=android --org com.tuanome.electricpro --project-name electric_pro .
           fi
           cp /tmp/main_backup.dart lib/main.dart
           cp /tmp/pubspec_backup.yaml pubspec.yaml
-          ls -la
-          ls -la android/
       - name: Get packages
         script: |
-          cd electric-pro
           flutter pub get
       - name: Build APK
         script: |
-          cd electric-pro
           flutter build apk --release
     artifacts:
-      - electric-pro/build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/flutter-apk/app-release.apk
     publishing:
       email:
         recipients:
-          - your@email.com
+          - gabriele2180@gmail.com
