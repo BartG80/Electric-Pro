@@ -1,9 +1,13 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AppConfig {
   static const String appName = 'Preventivo Elettrico Pro';
@@ -30,7 +34,7 @@ class MyApp extends StatelessWidget {
 class Lavoro {
   final String nome;
   final String categoria;
-  double prezzo; // NON PIU' FINAL - così si può cambiare il prezzo base
+  double prezzo; // NON FINAL - così si può cambiare il prezzo base
   final String unita;
   Lavoro(this.nome, this.categoria, this.prezzo, {this.unita = 'cad.'});
 }
@@ -56,22 +60,27 @@ final List<Lavoro> catalogo = [
   Lavoro('Certificazione / Dichiarazione di conformità', 'Riparazione', 150),
   Lavoro('Riparazione guasto / ricerca guasto', 'Riparazione', 70, unita: 'ora'),
   // MATASSE CAVO UNIPOLARE - 5 SEZIONI x 4 COLORI - CON - 1 +
+  // --- 1,5 mm² ---
   Lavoro('Matassa cavo 1,5mm² - Blu - Neutro - 100m', 'Cavi', 45, unita: 'matassa'),
   Lavoro('Matassa cavo 1,5mm² - Marrone - Fase - 100m', 'Cavi', 45, unita: 'matassa'),
   Lavoro('Matassa cavo 1,5mm² - Nero - Fase - 100m', 'Cavi', 45, unita: 'matassa'),
   Lavoro('Matassa cavo 1,5mm² - Giallo Verde - Terra - 100m', 'Cavi', 45, unita: 'matassa'),
+  // --- 2,5 mm² ---
   Lavoro('Matassa cavo 2,5mm² - Blu - Neutro - 100m', 'Cavi', 65, unita: 'matassa'),
   Lavoro('Matassa cavo 2,5mm² - Marrone - Fase - 100m', 'Cavi', 65, unita: 'matassa'),
   Lavoro('Matassa cavo 2,5mm² - Nero - Fase - 100m', 'Cavi', 65, unita: 'matassa'),
   Lavoro('Matassa cavo 2,5mm² - Giallo Verde - Terra - 100m', 'Cavi', 65, unita: 'matassa'),
+  // --- 4 mm² ---
   Lavoro('Matassa cavo 4mm² - Blu - Neutro - 100m', 'Cavi', 95, unita: 'matassa'),
   Lavoro('Matassa cavo 4mm² - Marrone - Fase - 100m', 'Cavi', 95, unita: 'matassa'),
   Lavoro('Matassa cavo 4mm² - Nero - Fase - 100m', 'Cavi', 95, unita: 'matassa'),
   Lavoro('Matassa cavo 4mm² - Giallo Verde - Terra - 100m', 'Cavi', 95, unita: 'matassa'),
+  // --- 6 mm² ---
   Lavoro('Matassa cavo 6mm² - Blu - Neutro - 100m', 'Cavi', 135, unita: 'matassa'),
   Lavoro('Matassa cavo 6mm² - Marrone - Fase - 100m', 'Cavi', 135, unita: 'matassa'),
   Lavoro('Matassa cavo 6mm² - Nero - Fase - 100m', 'Cavi', 135, unita: 'matassa'),
   Lavoro('Matassa cavo 6mm² - Giallo Verde - Terra - 100m', 'Cavi', 135, unita: 'matassa'),
+  // --- 10 mm² ---
   Lavoro('Matassa cavo 10mm² - Blu - Neutro - 100m', 'Cavi', 210, unita: 'matassa'),
   Lavoro('Matassa cavo 10mm² - Marrone - Fase - 100m', 'Cavi', 210, unita: 'matassa'),
   Lavoro('Matassa cavo 10mm² - Nero - Fase - 100m', 'Cavi', 210, unita: 'matassa'),
@@ -225,13 +234,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // NUOVO: MODIFICA PREZZO BASE NEL CATALOGO - pressione lunga
+  // MODIFICA PREZZO BASE NEL CATALOGO - pressione lunga
   Future<void> _modificaPrezzoBase(Lavoro l) async {
     final ctrl = TextEditingController(text: l.prezzo.toStringAsFixed(0));
     final nuovo = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Modifica prezzo base'),
+        title: const Text('Modifica prezzo base'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,7 +261,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (nuovo != null && nuovo > 0) {
       setState(() {
         l.prezzo = nuovo;
-        // Aggiorna anche le righe già aggiunte se vuoi che il prezzo cambi subito
         for (final r in righe.where((r) => r.lavoro.nome == l.nome)) {
           r.prezzoPersonalizzato = nuovo;
         }
@@ -260,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // NUOVO: MODIFICA PREZZO SOLO PER QUESTA RIGA / QUESTO CLIENTE
+  // MODIFICA PREZZO SOLO PER QUESTA RIGA / QUESTO CLIENTE
   Future<void> _modificaPrezzoRiga(RigaPreventivo r) async {
     final ctrl = TextEditingController(text: r.prezzoPersonalizzato.toStringAsFixed(0));
     final nuovo = await showDialog<double>(
@@ -307,15 +315,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lavorazioni cancellate')));
   }
 
-  Future<void> _generaPdf() async {
-    if (_clienteCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inserisci il nome del cliente')));
-      return;
-    }
-    if (righe.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aggiungi almeno un lavoro')));
-      return;
-    }
+  // CREA IL PDF E LO RESTITUISCE COME BYTES
+  Future<Uint8List> _creaPdfBytes() async {
     final doc = pw.Document();
     final data = DateFormat('dd/MM/yyyy').format(DateTime.now());
     final foro = ditta.cittaForo.isEmpty ? '________' : ditta.cittaForo;
@@ -405,12 +406,53 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       ],
     ));
+    return doc.save();
+  }
 
-    await Printing.layoutPdf(onLayout: (f) async => doc.save());
+  bool _datiValidi() {
+    if (_clienteCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inserisci il nome del cliente')));
+      return false;
+    }
+    if (righe.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aggiungi almeno un lavoro')));
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _avanzaNumero() async {
     final prefs = await SharedPreferences.getInstance();
     final nuovo = _numero + 1;
     await prefs.setInt('numero_preventivo', nuovo);
     setState(() => _numero = nuovo);
+  }
+
+  // 1. SOLO VEDERE IL PDF - IL NUMERO NON AVANZA
+  Future<void> _generaPdf() async {
+    if (!_datiValidi()) return;
+    final bytes = await _creaPdfBytes();
+    await Printing.layoutPdf(onLayout: (f) async => bytes);
+  }
+
+  // 2. SALVA + INVIA SU WHATSAPP - QUI IL NUMERO AVANZA
+  Future<void> _salvaEInviaWhatsApp() async {
+    if (!_datiValidi()) return;
+    final numeroAttuale = numeroFormattato;
+    final bytes = await _creaPdfBytes();
+    final dir = await getTemporaryDirectory();
+    final nomeFile = 'Preventivo_${numeroAttuale}_${_clienteCtrl.text.trim().replaceAll(' ', '_')}.pdf';
+    final file = File('${dir.path}/$nomeFile');
+    await file.writeAsBytes(bytes);
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Ciao ${_clienteCtrl.text}, ti invio il preventivo $numeroAttuale - Totale ${fmt(totale)}. Fammi sapere se va bene. Grazie!',
+      subject: 'Preventivo $numeroAttuale',
+    );
+
+    await _avanzaNumero();
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Preventivo $numeroAttuale inviato - prossimo sarà $numeroFormattato')));
   }
 
   @override
@@ -481,7 +523,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ]),
           ),
           const SizedBox(height: 8),
-          // LISTA CATALOGO - PRESSIONE LUNGA = MODIFICA PREZZO BASE
           Expanded(
             flex: 2,
             child: ListView.builder(
@@ -514,7 +555,6 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-          // RIGHE SELEZIONATE - TOCCA IL PREZZO PER CAMBIARLO SOLO QUI
           if (righe.isNotEmpty)
             Container(
               constraints: const BoxConstraints(maxHeight: 280),
@@ -565,9 +605,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 6),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(onPressed: _generaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('GENERA PDF PREVENTIVO')),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(onPressed: _generaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('VEDI PDF')),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _salvaEInviaWhatsApp,
+                                icon: const Icon(Icons.send),
+                                label: const Text('INVIA WHATSAPP'),
+                                style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
