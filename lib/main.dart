@@ -30,11 +30,10 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ---------- MODELLO LAVORO ----------
 class Lavoro {
   final String nome;
   final String categoria;
-  double prezzo; // NON FINAL - così si può cambiare il prezzo base
+  double prezzo;
   final String unita;
   Lavoro(this.nome, this.categoria, this.prezzo, {this.unita = 'cad.'});
 }
@@ -59,35 +58,28 @@ final List<Lavoro> catalogo = [
   Lavoro('Domotica - punto / centralina', 'Domotica', 120),
   Lavoro('Certificazione / Dichiarazione di conformità', 'Riparazione', 150),
   Lavoro('Riparazione guasto / ricerca guasto', 'Riparazione', 70, unita: 'ora'),
-  // MATASSE CAVO UNIPOLARE - 5 SEZIONI x 4 COLORI - CON - 1 +
-  // --- 1,5 mm² ---
   Lavoro('Matassa cavo 1,5mm² - Blu - Neutro - 100m', 'Cavi', 45, unita: 'matassa'),
   Lavoro('Matassa cavo 1,5mm² - Marrone - Fase - 100m', 'Cavi', 45, unita: 'matassa'),
   Lavoro('Matassa cavo 1,5mm² - Nero - Fase - 100m', 'Cavi', 45, unita: 'matassa'),
   Lavoro('Matassa cavo 1,5mm² - Giallo Verde - Terra - 100m', 'Cavi', 45, unita: 'matassa'),
-  // --- 2,5 mm² ---
   Lavoro('Matassa cavo 2,5mm² - Blu - Neutro - 100m', 'Cavi', 65, unita: 'matassa'),
   Lavoro('Matassa cavo 2,5mm² - Marrone - Fase - 100m', 'Cavi', 65, unita: 'matassa'),
   Lavoro('Matassa cavo 2,5mm² - Nero - Fase - 100m', 'Cavi', 65, unita: 'matassa'),
   Lavoro('Matassa cavo 2,5mm² - Giallo Verde - Terra - 100m', 'Cavi', 65, unita: 'matassa'),
-  // --- 4 mm² ---
   Lavoro('Matassa cavo 4mm² - Blu - Neutro - 100m', 'Cavi', 95, unita: 'matassa'),
   Lavoro('Matassa cavo 4mm² - Marrone - Fase - 100m', 'Cavi', 95, unita: 'matassa'),
   Lavoro('Matassa cavo 4mm² - Nero - Fase - 100m', 'Cavi', 95, unita: 'matassa'),
   Lavoro('Matassa cavo 4mm² - Giallo Verde - Terra - 100m', 'Cavi', 95, unita: 'matassa'),
-  // --- 6 mm² ---
   Lavoro('Matassa cavo 6mm² - Blu - Neutro - 100m', 'Cavi', 135, unita: 'matassa'),
   Lavoro('Matassa cavo 6mm² - Marrone - Fase - 100m', 'Cavi', 135, unita: 'matassa'),
   Lavoro('Matassa cavo 6mm² - Nero - Fase - 100m', 'Cavi', 135, unita: 'matassa'),
   Lavoro('Matassa cavo 6mm² - Giallo Verde - Terra - 100m', 'Cavi', 135, unita: 'matassa'),
-  // --- 10 mm² ---
   Lavoro('Matassa cavo 10mm² - Blu - Neutro - 100m', 'Cavi', 210, unita: 'matassa'),
   Lavoro('Matassa cavo 10mm² - Marrone - Fase - 100m', 'Cavi', 210, unita: 'matassa'),
   Lavoro('Matassa cavo 10mm² - Nero - Fase - 100m', 'Cavi', 210, unita: 'matassa'),
   Lavoro('Matassa cavo 10mm² - Giallo Verde - Terra - 100m', 'Cavi', 210, unita: 'matassa'),
 ];
 
-// ---------- MODELLO DITTA ----------
 class Ditta {
   String nome, indirizzo, piva, telefono, email, cittaForo;
   Ditta({this.nome = '', this.indirizzo = '', this.piva = '', this.telefono = '', this.email = '', this.cittaForo = ''});
@@ -119,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double _accontoPerc = 40;
   List<RigaPreventivo> righe = [];
   int _numero = 1;
+  bool _mostraIntestazione = true; // NUOVO: per nascondere intestazione e guadagnare spazio
 
   @override
   void initState() {
@@ -208,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double get acconto => totale * (_accontoPerc / 100);
 
   String get numeroFormattato => 'EP-${DateTime.now().year}-${_numero.toString().padLeft(3, '0')}';
-  String fmt(double v) => NumberFormat.currency(locale: 'it_IT', symbol: '€', decimalDigits: 2).format(v);
+  String fmt(double v) => '${NumberFormat.currency(locale: 'it_IT', symbol: '', decimalDigits: 2).format(v).trim()} euro';
 
   void _aggiungi(Lavoro l) {
     setState(() {
@@ -234,7 +227,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // MODIFICA PREZZO BASE NEL CATALOGO - pressione lunga
   Future<void> _modificaPrezzoBase(Lavoro l) async {
     final ctrl = TextEditingController(text: l.prezzo.toStringAsFixed(0));
     final nuovo = await showDialog<double>(
@@ -247,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(l.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 12),
-            TextField(controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Nuovo prezzo €', border: OutlineInputBorder(), prefixText: '€ ')),
+            TextField(controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Nuovo prezzo euro', border: OutlineInputBorder(), prefixText: 'euro ')),
             const SizedBox(height: 8),
             const Text('Questo diventa il nuovo prezzo base per le prossime volte.', style: TextStyle(fontSize: 11, color: Colors.grey)),
           ],
@@ -268,7 +260,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // MODIFICA PREZZO SOLO PER QUESTA RIGA / QUESTO CLIENTE
   Future<void> _modificaPrezzoRiga(RigaPreventivo r) async {
     final ctrl = TextEditingController(text: r.prezzoPersonalizzato.toStringAsFixed(0));
     final nuovo = await showDialog<double>(
@@ -281,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(r.lavoro.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 12),
-            TextField(controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Prezzo per questo preventivo €', border: OutlineInputBorder(), prefixText: '€ ')),
+            TextField(controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Prezzo per questo preventivo euro', border: OutlineInputBorder(), prefixText: 'euro ')),
             const SizedBox(height: 8),
             const Text('Il listino base non cambia, cambia solo questa riga.', style: TextStyle(fontSize: 11, color: Colors.grey)),
           ],
@@ -306,6 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _search = '';
       _filtroCategoria = 'Tutte';
       _iva = 10;
+      _mostraIntestazione = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nuovo preventivo - tutto azzerato')));
   }
@@ -315,12 +307,10 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lavorazioni cancellate')));
   }
 
-  // CREA IL PDF E LO RESTITUISCE COME BYTES
   Future<Uint8List> _creaPdfBytes() async {
     final doc = pw.Document();
     final data = DateFormat('dd/MM/yyyy').format(DateTime.now());
     final foro = ditta.cittaForo.isEmpty ? '________' : ditta.cittaForo;
-
     doc.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(28),
@@ -362,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: const pw.BoxDecoration(color: PdfColors.orange50),
               children: [
                 pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('DESCRIZIONE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
-                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('QTÀ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
+                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('QTA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
                 pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('PREZZO', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
                 pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('TOTALE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9))),
               ],
@@ -428,14 +418,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _numero = nuovo);
   }
 
-  // 1. SOLO VEDERE IL PDF - IL NUMERO NON AVANZA
   Future<void> _generaPdf() async {
     if (!_datiValidi()) return;
     final bytes = await _creaPdfBytes();
     await Printing.layoutPdf(onLayout: (f) async => bytes);
   }
 
-  // 2. SALVA + INVIA SU WHATSAPP - QUI IL NUMERO AVANZA
   Future<void> _salvaEInviaWhatsApp() async {
     if (!_datiValidi()) return;
     final numeroAttuale = numeroFormattato;
@@ -444,13 +432,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final nomeFile = 'Preventivo_${numeroAttuale}_${_clienteCtrl.text.trim().replaceAll(' ', '_')}.pdf';
     final file = File('${dir.path}/$nomeFile');
     await file.writeAsBytes(bytes);
-
     await Share.shareXFiles(
       [XFile(file.path)],
       text: 'Ciao ${_clienteCtrl.text}, ti invio il preventivo $numeroAttuale - Totale ${fmt(totale)}. Fammi sapere se va bene. Grazie!',
       subject: 'Preventivo $numeroAttuale',
     );
-
     await _avanzaNumero();
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Preventivo $numeroAttuale inviato - prossimo sarà $numeroFormattato')));
   }
@@ -465,169 +451,167 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('ELECTRIC PRO', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text(ditta.nome.isEmpty ? 'Inserisci la tua ditta' : ditta.nome, style: const TextStyle(fontSize: 12)),
-        ]),
+        toolbarHeight: 48,
+        titleSpacing: 8,
+        title: Text(ditta.nome.isEmpty ? 'ELECTRIC PRO' : ditta.nome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), tooltip: 'Nuovo / Refresh - azzera tutto', onPressed: _nuovoPreventivo),
-          IconButton(icon: const Icon(Icons.delete), tooltip: 'Cancella lavorazioni', onPressed: _cancellaLavorazioni),
-          IconButton(icon: const Icon(Icons.business), tooltip: 'Dati ditta', onPressed: () => _mostraDialogDitta()),
+          IconButton(icon: const Icon(Icons.refresh, size: 20), tooltip: 'Nuovo', onPressed: _nuovoPreventivo),
+          IconButton(icon: const Icon(Icons.delete_outline, size: 20), tooltip: 'Cancella lavorazioni', onPressed: _cancellaLavorazioni),
+          IconButton(icon: const Icon(Icons.business, size: 20), tooltip: 'Dati ditta', onPressed: () => _mostraDialogDitta()),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // BARRA COMPATTA CLIENTE + BOTTONE NASCONDI - TI LIBERA SPAZIO
+            Row(
               children: [
-                TextField(controller: _clienteCtrl, decoration: const InputDecoration(labelText: 'Cliente *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person))),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(child: TextField(controller: _telefonoCtrl, decoration: const InputDecoration(labelText: 'Telefono cliente', border: OutlineInputBorder()), keyboardType: TextInputType.phone)),
-                  const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: _indirizzoCtrl, decoration: const InputDecoration(labelText: 'Indirizzo lavoro', border: OutlineInputBorder()))),
-                ]),
-                const SizedBox(height: 8),
-                Row(children: [
-                  const Text('IVA: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ChoiceChip(label: const Text('4%'), selected: _iva == 4, onSelected: (_) => setState(() => _iva = 4)),
-                  const SizedBox(width: 6),
-                  ChoiceChip(label: const Text('10%'), selected: _iva == 10, onSelected: (_) => setState(() => _iva = 10)),
-                  const SizedBox(width: 6),
-                  ChoiceChip(label: const Text('22%'), selected: _iva == 22, onSelected: (_) => setState(() => _iva = 22)),
-                  const Spacer(),
-                  Text('Prev. $numeroFormattato', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                ]),
+                Expanded(child: Text(_clienteCtrl.text.isEmpty ? 'Cliente: -' : 'Cliente: ${_clienteCtrl.text}  •  $numeroFormattato', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                TextButton.icon(
+                  onPressed: () => setState(() => _mostraIntestazione = !_mostraIntestazione),
+                  icon: Icon(_mostraIntestazione ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 16),
+                  label: Text(_mostraIntestazione ? 'Nascondi' : 'Mostra', style: const TextStyle(fontSize: 11)),
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: const Size(0, 28)),
+                ),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(children: [
+            if (_mostraIntestazione) ...[
+              TextField(controller: _clienteCtrl, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Cliente *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person, size: 18), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8))),
+              const SizedBox(height: 6),
+              Row(children: [
+                Expanded(child: TextField(controller: _telefonoCtrl, decoration: const InputDecoration(labelText: 'Telefono', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)), keyboardType: TextInputType.phone)),
+                const SizedBox(width: 6),
+                Expanded(child: TextField(controller: _indirizzoCtrl, decoration: const InputDecoration(labelText: 'Indirizzo lavoro', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)))),
+              ]),
+              const SizedBox(height: 6),
+              Row(children: [
+                const Text('IVA:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(width: 4),
+                ChoiceChip(label: const Text('4%', style: TextStyle(fontSize: 11)), selected: _iva == 4, onSelected: (_) => setState(() => _iva = 4), visualDensity: VisualDensity.compact, labelPadding: const EdgeInsets.symmetric(horizontal: 4)),
+                const SizedBox(width: 4),
+                ChoiceChip(label: const Text('10%', style: TextStyle(fontSize: 11)), selected: _iva == 10, onSelected: (_) => setState(() => _iva = 10), visualDensity: VisualDensity.compact, labelPadding: const EdgeInsets.symmetric(horizontal: 4)),
+                const SizedBox(width: 4),
+                ChoiceChip(label: const Text('22%', style: TextStyle(fontSize: 11)), selected: _iva == 22, onSelected: (_) => setState(() => _iva = 22), visualDensity: VisualDensity.compact, labelPadding: const EdgeInsets.symmetric(horizontal: 4)),
+                const Spacer(),
+                Text(numeroFormattato, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange, fontSize: 12)),
+              ]),
+              const SizedBox(height: 6),
+            ],
+            Row(children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: _filtroCategoria,
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                  items: ['Tutte', ...AppConfig.categorie].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  isDense: true,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6)),
+                  style: const TextStyle(fontSize: 12, color: Colors.black),
+                  items: ['Tutte', ...AppConfig.categorie].map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
                   onChanged: (v) => setState(() => _filtroCategoria = v ?? 'Tutte'),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: TextField(
-                  decoration: const InputDecoration(hintText: 'Cerca lavoro...', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                  decoration: const InputDecoration(hintText: 'Cerca...', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8), hintStyle: TextStyle(fontSize: 12)),
+                  style: const TextStyle(fontSize: 12),
                   onChanged: (v) => setState(() => _search = v),
                 ),
               ),
             ]),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            flex: 2,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            const SizedBox(height: 6),
+            // LISTA COMPATTA - RIGHE PIU STRETTE
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: filtrati.length,
               itemBuilder: (ctx, i) {
                 final l = filtrati[i];
                 final esistente = righe.where((r) => r.lavoro.nome == l.nome).toList();
                 final qty = esistente.isEmpty ? 0 : esistente.first.qty;
                 return Card(
+                  margin: const EdgeInsets.only(bottom: 3),
                   child: ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -3),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                     onLongPress: () => _modificaPrezzoBase(l),
-                    title: Text(l.nome, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: Text('${l.categoria} • ${fmt(l.prezzo)} / ${l.unita}  •  tieni premuto per cambiare prezzo'),
+                    title: Text(l.nome, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
+                    subtitle: Text('${fmt(l.prezzo)} / ${l.unita} • tieni premuto per prezzo', style: const TextStyle(fontSize: 10)),
                     trailing: l.categoria == 'Cavi'
                         ? Container(
-                            decoration: BoxDecoration(border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(20)),
+                            height: 30,
+                            decoration: BoxDecoration(border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(15)),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(icon: const Icon(Icons.remove, size: 18), onPressed: () => _rimuoviUno(l)),
-                                Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                IconButton(icon: const Icon(Icons.add, size: 18), onPressed: () => _aggiungi(l)),
+                                SizedBox(width: 28, height: 28, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.remove, size: 16), onPressed: () => _rimuoviUno(l))),
+                                Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                SizedBox(width: 28, height: 28, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.add, size: 16), onPressed: () => _aggiungi(l))),
                               ],
                             ),
                           )
-                        : FilledButton(onPressed: () => _aggiungi(l), child: const Text('+ Aggiungi')),
+                        : SizedBox(height: 30, child: FilledButton(onPressed: () => _aggiungi(l), style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10), textStyle: const TextStyle(fontSize: 11)), child: const Text('+ Aggiungi'))),
                   ),
                 );
               },
             ),
-          ),
-          if (righe.isNotEmpty)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 280),
-              decoration: BoxDecoration(color: Colors.orange.shade50, border: Border(top: BorderSide(color: Colors.orange.shade200))),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      itemCount: righe.length,
-                      itemBuilder: (ctx, i) {
-                        final r = righe[i];
-                        return Row(
-                          children: [
-                            Expanded(child: Text('${r.lavoro.nome} x${r.qty}', style: const TextStyle(fontSize: 13))),
-                            GestureDetector(
-                              onTap: () => _modificaPrezzoRiga(r),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(6)),
-                                child: Text(fmt(r.prezzoPersonalizzato), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            if (righe.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.orange.shade50, border: Border.all(color: Colors.orange.shade200), borderRadius: BorderRadius.circular(8)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Riepilogo:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text('${righe.length} voci', style: const TextStyle(fontSize: 11, color: Colors.grey))]),
+                    const SizedBox(height: 4),
+                    ...righe.map((r) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Row(
+                            children: [
+                              Expanded(child: Text('${r.lavoro.nome} x${r.qty}', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                              GestureDetector(
+                                onTap: () => _modificaPrezzoRiga(r),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(5)),
+                                  child: Text(fmt(r.prezzoPersonalizzato), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(fmt(r.totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            IconButton(icon: const Icon(Icons.remove_circle_outline, size: 20), onPressed: () => setState(() { if (r.qty > 1) r.qty--; else righe.remove(r); })),
-                            IconButton(icon: const Icon(Icons.add_circle_outline, size: 20), onPressed: () => setState(() => r.qty++)),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                    child: Column(
+                              const SizedBox(width: 4),
+                              SizedBox(width: 92, child: Text(fmt(r.totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                              SizedBox(width: 26, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.remove_circle_outline, size: 18), onPressed: () => setState(() { if (r.qty > 1) r.qty--; else righe.remove(r); }))),
+                              SizedBox(width: 26, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.add_circle_outline, size: 18), onPressed: () => setState(() => r.qty++))),
+                            ],
+                          ),
+                        )),
+                    const Divider(height: 10),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Subtotale', style: TextStyle(fontSize: 12)), Text(fmt(subtotale), style: const TextStyle(fontSize: 12))]),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('IVA ${_iva.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12)), Text(fmt(ivaImporto), style: const TextStyle(fontSize: 12))]),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTALE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text(fmt(totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange))]),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Acconto ${_accontoPerc.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12)), Text(fmt(acconto), style: const TextStyle(fontSize: 12))]),
+                    const SizedBox(height: 6),
+                    Row(
                       children: [
-                        const Divider(),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Subtotale'), Text(fmt(subtotale))]),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('IVA ${_iva.toStringAsFixed(0)}%'), Text(fmt(ivaImporto))]),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTALE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text(fmt(totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange))]),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Acconto ${_accontoPerc.toStringAsFixed(0)}%'), Text(fmt(acconto))]),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Preventivo valido 30 giorni. Materiali e manodopera inclusi. Esecuzione a regola d\'arte secondo normative CEI. Acconto alla conferma, saldo a fine lavori.',
-                          style: TextStyle(fontSize: 9, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton.icon(onPressed: _generaPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('VEDI PDF')),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: _salvaEInviaWhatsApp,
-                                icon: const Icon(Icons.send),
-                                label: const Text('INVIA WHATSAPP'),
-                                style: FilledButton.styleFrom(backgroundColor: Colors.green),
-                              ),
-                            ),
-                          ],
+                        Expanded(child: FilledButton.icon(onPressed: _generaPdf, icon: const Icon(Icons.picture_as_pdf, size: 16), label: const Text('VEDI PDF', style: TextStyle(fontSize: 12)), style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)))),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _salvaEInviaWhatsApp,
+                            icon: const Icon(Icons.send, size: 16),
+                            label: const Text('INVIA WHATSAPP', style: TextStyle(fontSize: 12)),
+                            style: FilledButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 8)),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-        ],
+            const SizedBox(height: 10),
+          ],
+        ),
       ),
     );
   }
