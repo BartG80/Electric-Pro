@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double _accontoPerc = 40;
   List<RigaPreventivo> righe = [];
   int _numero = 1;
-  bool _mostraIntestazione = true; // NUOVO: per nascondere intestazione e guadagnare spazio
+  bool _mostraIntestazione = true;
 
   @override
   void initState() {
@@ -465,7 +465,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // BARRA COMPATTA CLIENTE + BOTTONE NASCONDI - TI LIBERA SPAZIO
             Row(
               children: [
                 Expanded(child: Text(_clienteCtrl.text.isEmpty ? 'Cliente: -' : 'Cliente: ${_clienteCtrl.text}  •  $numeroFormattato', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
@@ -520,7 +519,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ]),
             const SizedBox(height: 6),
-            // LISTA COMPATTA - RIGHE PIU STRETTE
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -566,23 +564,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Riepilogo:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text('${righe.length} voci', style: const TextStyle(fontSize: 11, color: Colors.grey))]),
                     const SizedBox(height: 4),
+                    // RIEPILOGO SISTEMATO - NOME INTERO + QTA CHIARA
                     ...righe.map((r) => Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Row(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: Text('${r.lavoro.nome} x${r.qty}', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
-                              GestureDetector(
-                                onTap: () => _modificaPrezzoRiga(r),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(5)),
-                                  child: Text(fmt(r.prezzoPersonalizzato), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                                ),
+                              Text(r.lavoro.nome, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Text('Qtà: ${r.qty} ${r.lavoro.unita}  •  ', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  GestureDetector(
+                                    onTap: () => _modificaPrezzoRiga(r),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.orange), borderRadius: BorderRadius.circular(5)),
+                                      child: Text(fmt(r.prezzoPersonalizzato), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(fmt(r.totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right),
+                                  SizedBox(width: 26, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.remove_circle_outline, size: 18), onPressed: () => setState(() { if (r.qty > 1) r.qty--; else righe.remove(r); }))),
+                                  SizedBox(width: 26, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.add_circle_outline, size: 18), onPressed: () => setState(() => r.qty++))),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              SizedBox(width: 92, child: Text(fmt(r.totale), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                              SizedBox(width: 26, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.remove_circle_outline, size: 18), onPressed: () => setState(() { if (r.qty > 1) r.qty--; else righe.remove(r); }))),
-                              SizedBox(width: 26, child: IconButton(padding: EdgeInsets.zero, icon: const Icon(Icons.add_circle_outline, size: 18), onPressed: () => setState(() => r.qty++))),
                             ],
                           ),
                         )),
